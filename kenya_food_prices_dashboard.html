@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ochwada Capital | Kenya Food Price Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg:#111827; --bg2:#1a2744; --bg3:#1f2e52; --card:#162039;
+  --red:#8B1A1A; --red-lt:#a52020; --red-dim:rgba(139,26,26,.14);
+  --navy:#1A3A5C; --navy-lt:#234d7a; --navy-dim:rgba(26,58,92,.18);
+  --white:#FFF; --cream:#F7F5F2; --dim:#8899aa; --muted:#445566;
+  --bdr:rgba(255,255,255,.08); --bdr-lt:rgba(255,255,255,.14);
+  --c1:#8B1A1A;--c2:#1A3A5C;--c3:#B8860B;--c4:#2E6B4F;--c5:#6B3A7D;--c6:#8B4513;--c7:#3A6B8B;
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--cream);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:48px 48px;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:rgba(17,24,39,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.logo-wrap{display:flex;align-items:center;}
+.oc-box{width:44px;height:44px;background:var(--bg2);border:1px solid rgba(139,26,26,.5);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.oc-box span{font-size:17px;font-weight:800;color:var(--red);}
+.oc-bar{width:1px;height:36px;background:var(--red);margin:0 14px;flex-shrink:0;}
+.oc-name{font-size:17px;font-weight:800;letter-spacing:.12em;color:var(--white);text-transform:uppercase;line-height:1;}
+.oc-cap{font-size:10px;font-weight:500;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-top:2px;}
+.logo-pipe{width:1px;height:30px;background:var(--bdr-lt);margin:0 20px;}
+.logo-plat{font-size:13px;font-weight:600;color:var(--dim);}
+.hbadges{display:flex;gap:8px;align-items:center;}
+.hb{font-size:11px;font-weight:600;letter-spacing:.05em;padding:4px 12px;border-radius:4px;border:1px solid;}
+.hb.r{color:#d05050;border-color:rgba(139,26,26,.4);background:var(--red-dim);}
+.hb.n{color:#6ba3d6;border-color:rgba(26,58,92,.5);background:var(--navy-dim);}
+
+/* NAV */
+.nav{position:sticky;top:64px;z-index:190;background:rgba(22,32,57,.98);border-bottom:1px solid var(--bdr);padding:0 28px;display:flex;overflow-x:auto;}
+.nav::-webkit-scrollbar{height:0;}
+.ntab{font-family:var(--font);font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;border-bottom:2px solid transparent;padding:14px 20px;cursor:pointer;white-space:nowrap;transition:color .2s,border-color .2s;}
+.ntab:hover{color:var(--cream);}
+.ntab.active{color:var(--white);border-bottom-color:var(--red);}
+
+/* LAYOUT */
+main{position:relative;z-index:1;}
+.panel{display:none;padding:26px 28px;animation:fi .18s ease;}
+.panel.active{display:block;}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.slabel{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.slabel .rb{width:3px;height:16px;background:var(--red);border-radius:2px;}
+.slabel span{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+
+/* STAT CARDS */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;margin-bottom:22px;}
+.sc{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:18px 16px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;}
+.sc:hover{border-color:var(--bdr-lt);transform:translateY(-1px);}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--red);}
+.sc.nv::after{background:var(--navy-lt);} .sc.gd::after{background:var(--c3);} .sc.gn::after{background:var(--c4);}
+.slbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sv{font-size:30px;font-weight:800;color:var(--white);line-height:1;}
+.sv.r{color:#d05050;} .sv.n{color:#6ba3d6;} .sv.g{color:#d4a017;} .sv.gn{color:#3a8b5e;}
+.ssb{font-size:12px;color:var(--dim);margin-top:4px;font-weight:500;}
+
+/* CHART CARD */
+.cc{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:20px;margin-bottom:16px;transition:border-color .2s;}
+.cc:hover{border-color:var(--bdr-lt);}
+.ch{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.ct{font-size:14px;font-weight:700;color:var(--white);}
+.cs{font-size:12px;color:var(--dim);margin-top:2px;}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* INPUTS */
+select{background:var(--bg3);border:1px solid var(--bdr-lt);color:var(--cream);padding:7px 11px;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;outline:none;transition:border-color .2s;max-width:220px;}
+select:hover{border-color:rgba(255,255,255,.25);}
+select:focus{border-color:var(--red);}
+.btn{font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--red);color:var(--white);border:none;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn:hover{background:var(--red-lt);transform:translateY(-1px);}
+.ptype-badge{font-size:11px;font-weight:600;color:var(--dim);padding:6px 10px;background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:6px;}
+
+/* CHART SIZES */
+.hsm{width:100%;height:240px;} .hmd{width:100%;height:330px;} .hlg{width:100%;height:430px;} .hxl{width:100%;height:500px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:860px){.g2{grid-template-columns:1fr;}}
+
+/* MAP */
+#mmap{width:100%;height:500px;border-radius:8px;border:1px solid var(--bdr);}
+
+/* TABLE */
+.dtbl{width:100%;border-collapse:collapse;font-size:13px;}
+.dtbl th{text-align:left;padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--bdr);}
+.dtbl td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--cream);font-weight:500;}
+.dtbl tr:hover td{background:rgba(139,26,26,.05);}
+.bup{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(139,26,26,.16);color:#d05050;border:1px solid rgba(139,26,26,.3);}
+.bdn{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(46,107,79,.14);color:#4aab7a;border:1px solid rgba(46,107,79,.28);}
+.bcat{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;background:var(--navy-dim);color:#6ba3d6;border:1px solid rgba(26,58,92,.4);}
+
+/* LOADER / EMPTY */
+.loader{display:flex;align-items:center;justify-content:center;height:160px;gap:10px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);}
+.spin{width:18px;height:18px;border:2px solid var(--bdr-lt);border-top-color:var(--red);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty-msg{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;font-style:italic;}
+.sbar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:4px;}
+.sfill{height:100%;border-radius:2px;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--bdr-lt);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <div class="oc-box"><span>OC</span></div>
+    <div class="oc-bar"></div>
+    <div><div class="oc-name">Ochwada</div><div class="oc-cap">Capital</div></div>
+    <div class="logo-pipe"></div>
+    <div class="logo-plat">Kenya Food Price Intelligence</div>
+  </div>
+  <div class="hbadges">
+    <div class="hb n">WFP OPEN DATA</div>
+    <div class="hb r">10,766 RECORDS · 2006–2023</div>
+  </div>
+</header>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="ntab active" onclick="sw('overview')">Overview</button>
+  <button class="ntab" onclick="sw('trends')">Price Trends</button>
+  <button class="ntab" onclick="sw('map')">Market Map</button>
+  <button class="ntab" onclick="sw('shocks')">Price Shocks</button>
+  <button class="ntab" onclick="sw('compare')">Compare</button>
+  <button class="ntab" onclick="sw('seasonal')">Seasonal</button>
+</div>
+
+<main>
+
+<!-- ▓ OVERVIEW ▓ -->
+<div id="p-overview" class="panel active">
+  <div class="slabel"><div class="rb"></div><span>Platform Overview</span></div>
+  <div class="sgrid">
+    <div class="sc"><div class="slbl">Price Records</div><div class="sv r">10,766</div><div class="ssb">Monthly observations</div></div>
+    <div class="sc nv"><div class="slbl">Markets Monitored</div><div class="sv n">62</div><div class="ssb">Across 10 regions</div></div>
+    <div class="sc gd"><div class="slbl">Commodities</div><div class="sv g">55</div><div class="ssb">7 food categories</div></div>
+    <div class="sc gn"><div class="slbl">Data Span</div><div class="sv gn">18 yr</div><div class="ssb">Jan 2006 – Dec 2023</div></div>
+    <div class="sc"><div class="slbl">Nairobi Maize Avg</div><div class="sv r" id="kpi-maize">—</div><div class="ssb">KES / KG · Wholesale</div></div>
+  </div>
+  <div class="g2">
+    <div class="cc">
+      <div class="ch"><div><div class="ct">Nairobi Maize — 18 Year Price Trend</div><div class="cs">KES/KG · Wholesale · Nairobi Central Market · monthly average</div></div><span class="bcat">Commodity #1</span></div>
+      <div id="c-ov1" class="hmd"></div>
+    </div>
+    <div class="cc">
+      <div class="ch"><div><div class="ct">Maize Price by Region — All-Time Average</div><div class="cs">KES/KG · all markets · all price types</div></div></div>
+      <div id="c-ov2" class="hmd"></div>
+    </div>
+  </div>
+  <div class="cc">
+    <div class="ch"><div>
+      <div class="ct">Nairobi Food Basket Price Index (2006–2022)</div>
+      <div class="cs">Maize · Beans · Oil · Bread · Milk &nbsp;·&nbsp; Monthly averages, each normalised to base = 100 at first reading</div>
+    </div></div>
+    <div id="c-ov3" class="hlg"></div>
+  </div>
+</div>
+
+<!-- ▓ TRENDS ▓ -->
+<div id="p-trends" class="panel">
+  <div class="slabel"><div class="rb"></div><span>Price Trend Explorer</span></div>
+  <div class="cc">
+    <div class="ch">
+      <div><div class="ct">Commodity Price History</div><div class="cs">Price type auto-detected from most common data per commodity · monthly average shown</div></div>
+      <div class="ctrls">
+        <select id="s-tc" onchange="onCommChange()"><option>Loading...</option></select>
+        <select id="s-tm"><option value="">All Markets</option></select>
+        <span class="ptype-badge" id="ptype-label">Wholesale</span>
+        <button class="btn" onclick="loadTrend()">Load Chart</button>
+      </div>
+    </div>
+    <div id="c-tr1" class="hxl"></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="ct" style="margin-bottom:12px">Year-over-Year Change (%)</div><div id="c-tr2" class="hsm"></div></div>
+    <div class="cc"><div class="ct" style="margin-bottom:12px">Price Distribution (Histogram)</div><div id="c-tr3" class="hsm"></div></div>
+  </div>
+</div>
+
+<!-- ▓ MAP ▓ -->
+<div id="p-map" class="panel">
+  <div class="slabel"><div class="rb"></div><span>Kenya Market Network</span></div>
+  <div class="cc">
+    <div class="ch">
+      <div><div class="ct">62 Monitored Markets — Interactive Price Map</div><div class="cs">Bubble colour = price level · Green → Amber → Red (low → high) · Click any marker for details</div></div>
+      <div class="ctrls">
+        <select id="s-mc" onchange="updateMap()"></select>
+      </div>
+    </div>
+    <div id="mmap"></div>
+  </div>
+</div>
+
+<!-- ▓ SHOCKS ▓ -->
+<div id="p-shocks" class="panel">
+  <div class="slabel"><div class="rb"></div><span>Price Shock Detector</span></div>
+  <div class="cc">
+    <div class="ch">
+      <div><div class="ct">Month-on-Month Price Alerts</div><div class="cs">Detects spikes and drops above the selected threshold using monthly-averaged prices</div></div>
+      <div class="ctrls">
+        <select id="s-sc"></select>
+        <select id="s-st">
+          <option value="15">≥ 15% change</option>
+          <option value="20" selected>≥ 20% change</option>
+          <option value="30">≥ 30% change</option>
+          <option value="50">≥ 50% change</option>
+        </select>
+        <button class="btn" onclick="loadShocks()">Detect Shocks</button>
+      </div>
+    </div>
+    <div id="c-sh1" class="hsm" style="margin-bottom:16px"></div>
+    <div style="overflow-x:auto">
+      <table class="dtbl">
+        <thead><tr><th>Month</th><th>Market</th><th>Region</th><th>Prev KES</th><th>New KES</th><th>Change</th><th>Type</th><th>Severity</th></tr></thead>
+        <tbody id="sh-body"><tr><td colspan="8"><div class="loader"><div class="spin"></div>Select commodity and click Detect</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ▓ COMPARE ▓ -->
+<div id="p-compare" class="panel">
+  <div class="slabel"><div class="rb"></div><span>Market Price Comparison</span></div>
+  <div class="cc">
+    <div class="ch">
+      <div><div class="ct">Same Commodity · Top 6 Markets by Coverage</div><div class="cs">Top markets automatically selected based on available data for each commodity</div></div>
+      <div class="ctrls"><select id="s-cpc"></select><button class="btn" onclick="loadCompare()">Compare Markets</button></div>
+    </div>
+    <div id="c-cp1" class="hlg"></div>
+  </div>
+  <div class="cc">
+    <div class="ch"><div><div class="ct">Price Ranking — All Markets (Most Recent Reading)</div><div class="cs">Maize KES/KG · latest available per market · highest to lowest</div></div></div>
+    <div id="c-cp2" class="hxl"></div>
+  </div>
+</div>
+
+<!-- ▓ SEASONAL ▓ -->
+<div id="p-seasonal" class="panel">
+  <div class="slabel"><div class="rb"></div><span>Seasonal Price Patterns</span></div>
+  <div class="cc">
+    <div class="ch">
+      <div><div class="ct">Monthly Price Averages — Harvest & Lean Seasons</div><div class="cs">All years · all markets · monthly average · Red = lean season · Green = harvest</div></div>
+      <div class="ctrls"><select id="s-sec"></select><button class="btn" onclick="loadSeasonal()">Analyse</button></div>
+    </div>
+    <div id="c-se1" class="hmd"></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="ct" style="margin-bottom:12px">Nairobi Maize — Price Heatmap Year × Month</div><div id="c-se2" class="hmd"></div></div>
+    <div class="cc"><div class="ct" style="margin-bottom:12px">Lean Season Calendar — % Above Annual Average</div><div id="c-se3" class="hmd"></div></div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const BASE  = 'https://dqgwryvbxhlyreytctxg.supabase.co';
+const KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxZ3dyeXZieGhseXJleXRjdHhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzOTY5MDAsImV4cCI6MjA4ODk3MjkwMH0.8mHhen45DFFv5B_OzLjK2S9mDhPMrBqyrAYUAX-5PXM';
+const FNBASE = BASE + '/functions/v1';
+const HDR   = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+const MOS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PAL   = ['#8B1A1A','#1A3A5C','#B8860B','#2E6B4F','#6B3A7D','#8B4513','#3A6B8B'];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+// comms = fp_commodity_meta rows — includes dominant_pricetype
+let comms = [], mkts = [], lmap = null, lmks = [];
+const CHS = {}, done = {};
+
+// ═══════════════════════════════════════════════════════
+// API — all public schema, no Accept-Profile needed
+// ═══════════════════════════════════════════════════════
+async function q(view, params = {}) {
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const url = `${BASE}/rest/v1/${view}${qs ? '?' + qs : ''}`;
+  try {
+    const r = await fetch(url, { headers: HDR });
+    if (!r.ok) { console.error(`[${view}]`, r.status, await r.text()); return []; }
+    const d = await r.json();
+    return Array.isArray(d) ? d : [];
+  } catch (e) { console.error(`[${view}]`, e.message); return []; }
+}
+
+async function callFn(name, params = {}) {
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  try { const r = await fetch(`${FNBASE}/${name}${qs?'?'+qs:''}`, { headers: HDR }); return r.json(); }
+  catch (e) { console.error(`[fn:${name}]`, e.message); return {}; }
+}
+
+// ═══════════════════════════════════════════════════════
+// ECHARTS HELPERS
+// ═══════════════════════════════════════════════════════
+function mkC(id) {
+  if (CHS[id]) { try { CHS[id].dispose(); } catch(_){} }
+  const el = document.getElementById(id);
+  if (!el) return null;
+  CHS[id] = echarts.init(el);
+  return CHS[id];
+}
+const AX = {
+  axisLine:  { lineStyle: { color:'rgba(255,255,255,.1)' } },
+  axisLabel: { color:'#556677', fontFamily:'Plus Jakarta Sans', fontSize:12 },
+  splitLine: { lineStyle: { color:'rgba(255,255,255,.04)' } },
+};
+const TT = {
+  trigger:'axis', backgroundColor:'#1a2744',
+  borderColor:'rgba(255,255,255,.1)',
+  textStyle:{ color:'#f7f5f2', fontFamily:'Plus Jakarta Sans', fontSize:13 },
+  axisPointer:{ lineStyle:{ color:'#8B1A1A', type:'dashed' } },
+};
+const xCat = d => ({ type:'category', data:d, ...AX, splitLine:{show:false} });
+const yVal = n => ({ type:'value', name:n||'', nameTextStyle:{color:'#445',fontFamily:'Plus Jakarta Sans',fontSize:10}, ...AX });
+const area = (data,col,name) => ({
+  type:'line', data, name, smooth:true, symbol:'none',
+  lineStyle:{ color:col, width:2.5 },
+  areaStyle:{ color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:col+'30'},{offset:1,color:col+'00'}]) },
+  itemStyle:{ color:col }, connectNulls:true,
+});
+const G = (l,r,t,b) => ({ left:l||55, right:r||20, top:t||14, bottom:b||42 });
+
+// ═══════════════════════════════════════════════════════
+// TAB ROUTING
+// ═══════════════════════════════════════════════════════
+function sw(name) {
+  document.querySelectorAll('.ntab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[onclick="sw('${name}')"]`).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('p-' + name).classList.add('active');
+  setTimeout(() => Object.values(CHS).forEach(c => c && c.resize && c.resize()), 120);
+  if (!done[name]) { done[name] = true; runTab(name); }
+}
+async function runTab(n) {
+  if (n==='trends')   { fillTrendSelects(); loadTrend(); }
+  if (n==='map')      { fillSel('s-mc'); initMap(); }
+  if (n==='shocks')   { fillSel('s-sc'); }
+  if (n==='compare')  { fillSel('s-cpc'); loadCompare(); loadRank(); }
+  if (n==='seasonal') { fillSel('s-sec'); loadSeasonal(); loadHeat(); }
+}
+
+function fillTrendSelects() {
+  const cs = document.getElementById('s-tc');
+  const ms = document.getElementById('s-tm');
+  if (cs) cs.innerHTML = comms.map(c =>
+    `<option value="${c.commodity_id}" data-pt="${c.dominant_pricetype}">${c.commodity_name} (${c.unit})</option>`
+  ).join('');
+  if (ms) ms.innerHTML = '<option value="">All Markets</option>' +
+    mkts.map(m => `<option value="${m.market_id}">${m.market_name}</option>`).join('');
+  // Set initial pricetype badge
+  onCommChange();
+}
+
+function fillSel(id) {
+  const s = document.getElementById(id);
+  if (s) s.innerHTML = comms.map(c =>
+    `<option value="${c.commodity_id}" data-pt="${c.dominant_pricetype}">${c.commodity_name} (${c.unit})</option>`
+  ).join('');
+}
+
+// Update pricetype label when commodity changes in Trends tab
+function onCommChange() {
+  const cs = document.getElementById('s-tc');
+  const lbl = document.getElementById('ptype-label');
+  if (!cs || !lbl) return;
+  const opt = cs.options[cs.selectedIndex];
+  const pt = opt?.dataset?.pt || 'Wholesale';
+  lbl.textContent = pt;
+}
+
+// Helper: get dominant pricetype for a commodity_id
+function getDomPricetype(cid) {
+  const c = comms.find(x => x.commodity_id == cid);
+  return c?.dominant_pricetype || 'Retail';
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+async function boot() {
+  // Use fp_commodity_meta — has dominant_pricetype per commodity
+  const [cm, mk] = await Promise.all([
+    q('fp_commodity_meta', { order:'commodity_name' }),
+    q('fp_markets',        { order:'market_name'    }),
+  ]);
+  comms = cm; mkts = mk;
+  await loadOverview();
+}
+
+// ═══════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════
+async function loadOverview() {
+  // ① Nairobi Maize Wholesale monthly avg — uses fp_nairobi_monthly (pre-aggregated, 1 row/month)
+  const maize = await q('fp_nairobi_monthly', {
+    select: 'month,avg_price',
+    commodity_id: 'eq.1',
+    order: 'month',
+  });
+
+  if (maize.length) {
+    const avg = maize.reduce((s,r) => s + +r.avg_price, 0) / maize.length;
+    document.getElementById('kpi-maize').textContent = avg.toFixed(1);
+
+    const c = mkC('c-ov1');
+    if (c) c.setOption({
+      backgroundColor:'transparent', tooltip:TT, grid:G(52,20,10,40),
+      xAxis: xCat(maize.map(r => r.month)),
+      yAxis: yVal('KES'),
+      series: [area(maize.map(r => +r.avg_price), '#8B1A1A', 'KES/KG')],
+      dataZoom: [{ type:'inside' }],
+    });
+  }
+
+  // ② Region bar — avg maize price by admin1 across all time
+  // Use fp_monthly_avg (aggregated), then average per region
+  const regData = await q('fp_monthly_avg', {
+    select:       'avg_price,market_id',
+    commodity_id: 'eq.1',
+    limit:        '5000',
+  });
+
+  // Join market regions client-side
+  if (regData.length) {
+    const mktMap = {};
+    mkts.forEach(m => { mktMap[m.market_id] = m.admin1 || 'Unknown'; });
+    const byR = {};
+    regData.forEach(r => {
+      const reg = mktMap[r.market_id] || 'Unknown';
+      if (!byR[reg]) byR[reg] = [];
+      byR[reg].push(+r.avg_price);
+    });
+    const srt = Object.entries(byR)
+      .map(([r,arr]) => ({ r, a: +(arr.reduce((a,b) => a+b, 0)/arr.length).toFixed(1) }))
+      .sort((a,b) => b.a - a.a);
+
+    const c = mkC('c-ov2');
+    if (c) c.setOption({
+      backgroundColor:'transparent',
+      tooltip:{ ...TT, formatter:p=>`${p[0].name}<br/>Avg KES ${p[0].value}` },
+      grid: G(130,70,10,10),
+      xAxis: { type:'value', ...AX },
+      yAxis: { type:'category', data:srt.map(s=>s.r), axisLabel:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:12 } },
+      series: [{
+        type:'bar', data:srt.map(s=>s.a), barMaxWidth:20,
+        itemStyle:{
+          color: new echarts.graphic.LinearGradient(1,0,0,0,[{offset:0,color:'#8B1A1A'},{offset:1,color:'#8B1A1A25'}]),
+          borderRadius:[0,4,4,0]
+        },
+        label:{ show:true, position:'right', color:'#667', fontFamily:'Plus Jakarta Sans', fontSize:12 }
+      }],
+    });
+  }
+
+  // ③ Food basket index — uses fp_nairobi_monthly (pre-aggregated)
+  const raw = await q('fp_nairobi_monthly', { select:'month,commodity_id,avg_price', order:'month', limit:'1000' });
+  const byComm = {};
+  raw.forEach(r => { if (!byComm[r.commodity_id]) byComm[r.commodity_id] = {}; byComm[r.commodity_id][r.month] = +r.avg_price; });
+  const allD = [...new Set(raw.map(r => r.month))].sort();
+
+  const multiMeta = [
+    {id:1, name:'Maize',  col:'#8B1A1A'},
+    {id:3, name:'Beans',  col:'#1A3A5C'},
+    {id:10,name:'Oil',    col:'#2E6B4F'},
+    {id:6, name:'Bread',  col:'#B8860B'},
+    {id:9, name:'Milk',   col:'#6B3A7D'},
+  ];
+
+  const series = multiMeta.map(m => {
+    const dm = byComm[m.id] || {};
+    const months = Object.keys(dm).sort();
+    if (!months.length) return null;
+    const base = dm[months[0]] || 1;
+    return {
+      type:'line', name:m.name, smooth:true, symbol:'none', connectNulls:true,
+      data: allD.map(dt => dm[dt] !== undefined ? +(dm[dt]/base*100).toFixed(1) : null),
+      lineStyle:{ color:m.col, width:2.5 }, itemStyle:{ color:m.col },
+    };
+  }).filter(Boolean);
+
+  const c3 = mkC('c-ov3');
+  if (c3) c3.setOption({
+    backgroundColor:'transparent',
+    legend:{ data:series.map(s=>s.name), textStyle:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:12 }, top:0 },
+    tooltip:TT, grid:G(55,20,36,42),
+    xAxis: xCat(allD),
+    yAxis: { ...yVal('Index (base=100)'), min:50 },
+    series, dataZoom:[{ type:'inside' }],
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PRICE TRENDS — uses fp_monthly_avg, auto pricetype
+// ═══════════════════════════════════════════════════════
+async function loadTrend() {
+  const cs  = document.getElementById('s-tc');
+  const cid = cs?.value || '1';
+  const mid = document.getElementById('s-tm')?.value;
+  // Auto detect dominant pricetype — never guess
+  const pt  = getDomPricetype(cid);
+  document.getElementById('ptype-label').textContent = pt;
+
+  // Build query against fp_monthly_avg (one row per month per market per commodity per pricetype)
+  const params = {
+    select:       'month,avg_price,market_id',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    order:        'month',
+    limit:        '2000',
+  };
+  if (mid) params.market_id = `eq.${mid}`;
+
+  const raw = await q('fp_monthly_avg', params);
+  if (!raw.length) {
+    mkC('c-tr1')?.setOption({ backgroundColor:'transparent', graphic:[{ type:'text', left:'center', top:'middle', style:{ text:'No data for this selection', fill:'#445566', fontSize:14 } }] });
+    return;
+  }
+
+  // If All Markets: aggregate by averaging per month across all markets
+  let monthlyData;
+  if (!mid) {
+    const byMonth = {};
+    raw.forEach(r => {
+      if (!byMonth[r.month]) byMonth[r.month] = [];
+      byMonth[r.month].push(+r.avg_price);
+    });
+    monthlyData = Object.keys(byMonth).sort().map(mo => ({
+      month: mo,
+      avg_price: +(byMonth[mo].reduce((a,b)=>a+b,0)/byMonth[mo].length).toFixed(2),
+    }));
+  } else {
+    monthlyData = raw.map(r => ({ month: r.month, avg_price: +r.avg_price }));
+  }
+
+  const dates  = monthlyData.map(r => r.month);
+  const prices = monthlyData.map(r => r.avg_price);
+  const comm   = comms.find(c => c.commodity_id == cid);
+  const mktName = mid ? mkts.find(m => m.market_id == mid)?.market_name : 'All Markets';
+
+  const c1 = mkC('c-tr1');
+  if (c1) c1.setOption({
+    backgroundColor:'transparent', tooltip:TT, grid:G(60,22,14,62),
+    xAxis: xCat(dates),
+    yAxis: yVal(`KES / ${comm?.unit||'unit'}`),
+    dataZoom:[
+      { type:'inside' },
+      { type:'slider', height:20, bottom:10, fillerColor:'rgba(139,26,26,.1)', borderColor:'rgba(255,255,255,.08)', handleStyle:{ color:'#8B1A1A' } }
+    ],
+    series:[{
+      ...area(prices, '#8B1A1A', `${comm?.commodity_name} (${pt})`),
+      markLine:{ data:[{ type:'average', label:{ color:'#B8860B', fontFamily:'Plus Jakarta Sans', fontSize:11 }, lineStyle:{ color:'#B8860B', type:'dashed', width:1 } }] }
+    }],
+  });
+
+  // YoY change
+  const yoy = dates.slice(12).map((_,i) => {
+    const p=prices[i+12], pp=prices[i];
+    return (p&&pp) ? +((p-pp)/pp*100).toFixed(1) : null;
+  });
+  const c2 = mkC('c-tr2');
+  if (c2) c2.setOption({
+    backgroundColor:'transparent', tooltip:TT, grid:G(52,10,10,38),
+    xAxis: xCat(dates.slice(12)),
+    yAxis:{ ...yVal('%'), axisLabel:{ ...AX.axisLabel, formatter:v=>`${v}%` } },
+    series:[{ type:'bar', data:yoy, barMaxWidth:8, itemStyle:{ color:p=>p.value>=0?'#8B1A1A':'#2E6B4F', borderRadius:2 } }],
+  });
+
+  // Histogram
+  const vl=prices.filter(Boolean);
+  if (vl.length < 2) return;
+  const mn=Math.min(...vl), mx=Math.max(...vl), bins=18, step=(mx-mn)/bins;
+  const hist=Array(bins).fill(0);
+  vl.forEach(p => hist[Math.min(Math.floor((p-mn)/step),bins-1)]++);
+  const c3 = mkC('c-tr3');
+  if (c3) c3.setOption({
+    backgroundColor:'transparent', tooltip:TT, grid:G(44,10,10,52),
+    xAxis:{ type:'category', data:hist.map((_,i)=>`${(mn+i*step).toFixed(0)}`), axisLabel:{ color:'#445', fontFamily:'Plus Jakarta Sans', fontSize:10, rotate:30 }, splitLine:{show:false} },
+    yAxis: yVal('Count'),
+    series:[{ type:'bar', data:hist, barMaxWidth:24, itemStyle:{ color:'#1A3A5C', borderRadius:[3,3,0,0] } }],
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════
+async function initMap() {
+  if (lmap) return;
+  lmap = L.map('mmap').setView([0.5,37.5],6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:15}).addTo(lmap);
+  const tp = document.querySelector('.leaflet-tile-pane');
+  if (tp) tp.style.filter = 'invert(90%) hue-rotate(180deg) brightness(.65) saturate(.5)';
+
+  mkts.forEach(m => {
+    if (!m.latitude||!m.longitude) return;
+    const mk = L.circleMarker([+m.latitude,+m.longitude],{radius:7,fillColor:'#8B1A1A',color:'#111827',weight:2,fillOpacity:.85}).addTo(lmap);
+    mk.bindPopup(`<div style="font-family:Plus Jakarta Sans;min-width:150px;padding:4px"><b style="color:#8B1A1A;font-size:14px">${m.market_name}</b><br/><span style="color:#888;font-size:12px">${m.admin1} · ${m.admin2}</span></div>`);
+    lmks.push({mk,m});
+  });
+  await updateMap();
+}
+
+async function updateMap() {
+  const cid = document.getElementById('s-mc')?.value || '1';
+  const pt  = getDomPricetype(cid);
+  const comm = comms.find(c => c.commodity_id == cid);
+
+  // Get latest month's avg price per market from fp_monthly_avg
+  const data = await q('fp_monthly_avg', {
+    select:       'market_id,avg_price,month',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    order:        'month.desc',
+    limit:        '500',
+  });
+
+  // Latest price per market
+  const lat = {};
+  data.forEach(r => { if (!lat[r.market_id]) lat[r.market_id] = +r.avg_price; });
+  const vals = Object.values(lat);
+  if (!vals.length) return;
+  const mn=Math.min(...vals), mx=Math.max(...vals);
+
+  lmks.forEach(({mk,m}) => {
+    const p = lat[m.market_id]; if (!p) return;
+    const t = (p-mn)/(mx-mn||1);
+    const col = t>.66?'#8B1A1A':t>.33?'#B8860B':'#2E6B4F';
+    mk.setStyle({ fillColor:col, radius:6+t*10 });
+    mk.bindPopup(`<div style="font-family:Plus Jakarta Sans;min-width:150px;padding:4px"><b style="color:${col};font-size:14px">${m.market_name}</b><br/><span style="color:#888;font-size:12px">${m.admin1} · ${pt}</span><br/><b style="color:${col};font-size:16px">KES ${p.toFixed(1)}</b><span style="color:#888"> / ${comm?.unit||''}</span></div>`);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PRICE SHOCKS — computed from fp_monthly_avg client-side
+// (More reliable than edge function for monthly data)
+// ═══════════════════════════════════════════════════════
+async function loadShocks() {
+  const cid = document.getElementById('s-sc')?.value || '1';
+  const thr = parseFloat(document.getElementById('s-st')?.value || '20');
+  const pt  = getDomPricetype(cid);
+  const comm = comms.find(c => c.commodity_id == cid);
+
+  document.getElementById('sh-body').innerHTML = '<tr><td colspan="8"><div class="loader"><div class="spin"></div>Computing shocks...</div></td></tr>';
+
+  // Get all monthly data for this commodity
+  const raw = await q('fp_monthly_avg', {
+    select:       'month,market_id,avg_price',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    order:        'market_id,month',
+    limit:        '5000',
+  });
+
+  // Build market lookup
+  const mktMap = {};
+  mkts.forEach(m => { mktMap[m.market_id] = m; });
+
+  // Group by market, then detect MoM shocks
+  const byMkt = {};
+  raw.forEach(r => {
+    if (!byMkt[r.market_id]) byMkt[r.market_id] = [];
+    byMkt[r.market_id].push({ month:r.month, price:+r.avg_price });
+  });
+
+  const shocks = [];
+  Object.entries(byMkt).forEach(([mktId, series]) => {
+    series.sort((a,b) => a.month.localeCompare(b.month));
+    for (let i=1; i<series.length; i++) {
+      const prev=series[i-1].price, curr=series[i].price;
+      if (!prev || !curr) continue;
+      const pct = (curr-prev)/prev*100;
+      if (Math.abs(pct) >= thr) {
+        const mkt = mktMap[mktId] || {};
+        shocks.push({
+          month:     series[i].month,
+          market:    mkt.market_name || `Market ${mktId}`,
+          admin1:    mkt.admin1 || '—',
+          prev:      prev.toFixed(1),
+          curr:      curr.toFixed(1),
+          pct:       +pct.toFixed(1),
+          type:      pct>0 ? 'SPIKE' : 'DROP',
+        });
+      }
+    }
+  });
+  shocks.sort((a,b) => Math.abs(b.pct)-Math.abs(a.pct));
+
+  // Timeline chart
+  const byD = {};
+  shocks.forEach(s => { byD[s.month]=(byD[s.month]||0)+1; });
+  const td = Object.keys(byD).sort();
+  const c = mkC('c-sh1');
+  if (c) c.setOption({
+    backgroundColor:'transparent', tooltip:TT, grid:G(40,20,10,38),
+    xAxis: xCat(td), yAxis: yVal('Events'),
+    series:[{ type:'bar', data:td.map(d=>byD[d]), barMaxWidth:14, itemStyle:{ color:'#B8860B', borderRadius:[2,2,0,0] } }],
+  });
+
+  if (!shocks.length) {
+    document.getElementById('sh-body').innerHTML = `<tr><td colspan="8" style="text-align:center;color:#445;padding:26px">No shocks detected at ≥${thr}% for ${comm?.commodity_name||'this commodity'} (${pt})</td></tr>`;
+    return;
+  }
+
+  document.getElementById('sh-body').innerHTML = shocks.slice(0,60).map(s => {
+    const up=s.pct>0, sev=Math.min(100,Math.abs(s.pct)), col=up?'#8B1A1A':'#2E6B4F';
+    return `<tr>
+      <td style="font-size:12px;color:#667;font-weight:600">${s.month}</td>
+      <td style="font-weight:700">${s.market}</td>
+      <td style="color:#667">${s.admin1}</td>
+      <td style="font-weight:600">KES ${s.prev}</td>
+      <td style="font-weight:600">KES ${s.curr}</td>
+      <td><span class="${up?'bup':'bdn'}">${up?'↑':'↓'} ${Math.abs(s.pct).toFixed(1)}%</span></td>
+      <td style="color:${col};font-weight:700;font-size:12px">${s.type}</td>
+      <td style="min-width:90px"><div class="sbar"><div class="sfill" style="width:${sev}%;background:${col}"></div></div><div style="font-size:10px;color:#445;margin-top:2px">${sev.toFixed(0)}%</div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// COMPARE — auto picks top markets by data coverage
+// ═══════════════════════════════════════════════════════
+async function loadCompare() {
+  const cid = document.getElementById('s-cpc')?.value || '1';
+  const pt  = getDomPricetype(cid);
+
+  // First get top 6 markets by record count for this commodity+pricetype
+  const tops = await q('fp_top_markets', {
+    select:       'market_id,records',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    order:        'records.desc',
+    limit:        '6',
+  });
+  if (!tops.length) return;
+  const topIds = tops.map(t => t.market_id);
+
+  // Now fetch monthly data for those markets
+  const data = await q('fp_monthly_avg', {
+    select:       'month,avg_price,market_id',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    market_id:    `in.(${topIds.join(',')})`,
+    order:        'month',
+    limit:        '2000',
+  });
+
+  const mktMap = {};
+  mkts.forEach(m => { mktMap[m.market_id] = m.market_name; });
+
+  const byM = {};
+  data.forEach(r => {
+    const n = mktMap[r.market_id] || `Mkt${r.market_id}`;
+    if (!byM[n]) byM[n] = [];
+    byM[n].push([r.month, +r.avg_price]);
+  });
+
+  const comm = comms.find(c => c.commodity_id == cid);
+  const series = Object.entries(byM).map(([name,d],i) => ({
+    name, type:'line', data:d, smooth:true, symbol:'none', connectNulls:true,
+    lineStyle:{ color:PAL[i], width:2.5 }, itemStyle:{ color:PAL[i] },
+  }));
+
+  const c = mkC('c-cp1');
+  if (c) c.setOption({
+    backgroundColor:'transparent',
+    legend:{ data:Object.keys(byM), textStyle:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:12 }, top:0 },
+    tooltip:TT, grid:G(60,20,38,42),
+    xAxis:{ type:'time', ...AX, splitLine:{show:false} },
+    yAxis: yVal(`KES / ${comm?.unit||'unit'}`),
+    dataZoom:[{ type:'inside' }], series,
+  });
+}
+
+async function loadRank() {
+  // Latest avg price per market for Maize (dominant pricetype = Wholesale)
+  const data = await q('fp_monthly_avg', {
+    select:       'market_id,avg_price,month',
+    commodity_id: 'eq.1',
+    pricetype:    'eq.Wholesale',
+    order:        'month.desc',
+    limit:        '1000',
+  });
+  const mktMap = {};
+  mkts.forEach(m => { mktMap[m.market_id] = m.market_name; });
+  const lat = {};
+  data.forEach(r => { if(!lat[r.market_id]) lat[r.market_id]=+r.avg_price; });
+  const entries = Object.entries(lat)
+    .map(([id,p]) => ({ name: mktMap[id]||`Mkt${id}`, p }))
+    .sort((a,b) => b.p-a.p).slice(0,30);
+
+  const c = mkC('c-cp2');
+  if (c) c.setOption({
+    backgroundColor:'transparent',
+    tooltip:{ ...TT, formatter:p=>`${p[0].name}<br/>KES ${p[0].value}/KG` },
+    grid:G(175,80,10,30),
+    xAxis:{ type:'value', ...AX },
+    yAxis:{ type:'category', data:entries.map(e=>e.name), axisLabel:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:11 } },
+    series:[{
+      type:'bar', data:entries.map(e=>e.p), barMaxWidth:20,
+      itemStyle:{ color:p=>{ const t=p.dataIndex/entries.length; return t<.33?'#8B1A1A':t<.66?'#B8860B':'#2E6B4F'; }, borderRadius:[0,4,4,0] },
+      label:{ show:true, position:'right', color:'#667', fontFamily:'Plus Jakarta Sans', fontSize:12 }
+    }],
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// SEASONAL — uses fp_monthly_avg (aggregated across all markets)
+// ═══════════════════════════════════════════════════════
+async function loadSeasonal() {
+  const cid = document.getElementById('s-sec')?.value || '1';
+  const pt  = getDomPricetype(cid);
+
+  // Get all monthly data for this commodity (all markets, aggregate by calendar month)
+  const raw = await q('fp_monthly_avg', {
+    select:       'month,avg_price',
+    commodity_id: `eq.${cid}`,
+    pricetype:    `eq.${pt}`,
+    limit:        '5000',
+  });
+  if (!raw.length) return;
+
+  // Group by calendar month (Jan=0..Dec=11)
+  const byMo = Array(12).fill(null).map(() => []);
+  raw.forEach(r => {
+    const mo = parseInt(r.month.slice(5,7)) - 1;
+    byMo[mo].push(+r.avg_price);
+  });
+  const avg = byMo.map(arr => arr.length ? +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null);
+  const ov  = avg.filter(Boolean).reduce((a,b)=>a+b,0)/avg.filter(Boolean).length;
+  const comm = comms.find(c => c.commodity_id == cid);
+
+  const c1 = mkC('c-se1');
+  if (c1) c1.setOption({
+    backgroundColor:'transparent', tooltip:TT, grid:G(60,20,10,38),
+    xAxis: xCat(MOS), yAxis: yVal(`KES / ${comm?.unit||'unit'}`),
+    series:[
+      { type:'bar', data:avg, barMaxWidth:40, connectNulls:true,
+        itemStyle:{ color:p=>!p.value?'#1a2744':p.value>ov*1.04?'#8B1A1A':p.value<ov*0.96?'#2E6B4F':'#B8860B', borderRadius:[4,4,0,0] },
+        label:{ show:true, position:'top', color:'#667', fontFamily:'Plus Jakarta Sans', fontSize:11, formatter:v=>v.value||'' }
+      },
+      { type:'line', data:Array(12).fill(+ov.toFixed(1)), symbol:'none', lineStyle:{ color:'#445', type:'dashed', width:1 } }
+    ],
+  });
+
+  const lean = avg.map(v => v ? +((v-ov)/ov*100).toFixed(1) : null);
+  const c3 = mkC('c-se3');
+  if (c3) c3.setOption({
+    backgroundColor:'transparent', tooltip:{ ...TT, formatter:p=>`${p[0].name}: ${p[0].value>0?'+':''}${p[0].value}% vs avg` },
+    grid:G(52,15,10,38), xAxis:xCat(MOS),
+    yAxis:{ ...yVal('%'), axisLabel:{ ...AX.axisLabel, formatter:v=>`${v}%` } },
+    series:[{ type:'bar', data:lean, barMaxWidth:34, itemStyle:{ color:p=>p.value>0?'#8B1A1A':'#2E6B4F', borderRadius:p=>p.value>0?[4,4,0,0]:[0,0,4,4] } }],
+  });
+}
+
+async function loadHeat() {
+  // Nairobi Maize Wholesale monthly — uses fp_nairobi_monthly (cleanest data)
+  const data = await q('fp_nairobi_monthly', {
+    select:       'month,avg_price',
+    commodity_id: 'eq.1',
+    order:        'month',
+  });
+  const years=new Set(), heat=[];
+  data.forEach(r => {
+    const yr=r.month.slice(0,4), mo=parseInt(r.month.slice(5,7))-1;
+    years.add(yr);
+    heat.push([mo, yr, +r.avg_price]);
+  });
+  const yl=[...years].sort(), ps=heat.map(h=>h[2]);
+  const mn=Math.min(...ps), mx=Math.max(...ps);
+  const c=mkC('c-se2');
+  if (c) c.setOption({
+    backgroundColor:'transparent',
+    tooltip:{ formatter:p=>`${MOS[p.data[0]]} ${p.data[1]}: KES ${p.data[2]}`, backgroundColor:'#1a2744', borderColor:'rgba(255,255,255,.1)', textStyle:{ color:'#f7f5f2', fontFamily:'Plus Jakarta Sans' } },
+    grid:{ left:50, right:100, top:10, bottom:52 },
+    xAxis:{ type:'category', data:MOS, axisLabel:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:11 }, axisLine:{ lineStyle:{ color:'rgba(255,255,255,.1)' } } },
+    yAxis:{ type:'category', data:yl, axisLabel:{ color:'#556', fontFamily:'Plus Jakarta Sans', fontSize:10 } },
+    visualMap:{ min:mn, max:mx, calculable:true, orient:'vertical', right:5, top:'center', textStyle:{ color:'#889', fontFamily:'Plus Jakarta Sans', fontSize:10 }, inRange:{ color:['#2E6B4F','#B8860B','#8B1A1A'] } },
+    series:[{ type:'heatmap', data:heat, itemStyle:{ borderRadius:2, borderWidth:1, borderColor:'#111827' } }],
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  Object.values(CHS).forEach(c => c && c.resize && c.resize());
+  lmap && lmap.invalidateSize();
+});
+
+// ═══════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════
+done['overview'] = true;
+boot();
+</script>
+</body>
+</html>
